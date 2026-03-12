@@ -7,7 +7,7 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/api': {
-        target: 'https://hamedo-back-end-production.up.railway.app',
+        target: 'https://hamedo-back-end-production-63a0.up.railway.app',
         changeOrigin: true,
         secure: true,
       },

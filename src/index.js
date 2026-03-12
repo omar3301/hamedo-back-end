@@ -14,7 +14,7 @@ const app = express();
 app.use(cors({
   origin: [
     process.env.CLIENT_URL || 'http://localhost:5173',
-    process.env.ADMIN_URL  || 'http://hamedo-back-end-production.up.railway.app',
+    process.env.ADMIN_URL  || 'http://hamedo-back-end-production-63a0.up.railway.app',
   ],
   credentials: true,
 }));

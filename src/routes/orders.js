@@ -17,9 +17,12 @@ router.post('/', async (req, res) => {
     const freeShipAbove    = await getSetting('free_shipping_above', 1000);
 
     const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-    // Store sales are face-to-face — never charge shipping
-    const isStoreSale = (req.body.source === 'store');
-    const shipping = isStoreSale ? 0 : (subtotal >= freeShipAbove ? 0 : shippingCost);
+
+    // No shipping if: store sale OR customer chose pickup
+    const isStoreSale  = req.body.source === 'store';
+    const isPickup     = (delivery?.address || '').toLowerCase().includes('pickup') ||
+                         req.body.deliveryMethod === 'pickup';
+    const shipping = (isStoreSale || isPickup) ? 0 : (subtotal >= freeShipAbove ? 0 : shippingCost);
     const total    = subtotal + shipping;
 
     const order = await Order.create({ customer, delivery, items, subtotal, shipping, total, source: req.body.source || 'website' });

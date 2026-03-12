@@ -78,7 +78,7 @@ npm install
 npm run dev
 ```
 
-Admin dashboard runs at **http://hamedo-back-end-production.up.railway.app**
+Admin dashboard runs at **http://hamedo-back-end-production-63a0.up.railway.app**
 
 **Default login:**
 - Email: `admin@hamedosport.com`
