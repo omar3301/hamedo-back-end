@@ -6,7 +6,11 @@ export default defineConfig({
   server: {
     port: 5174,
     proxy: {
-      '/api': 'http://localhost:4000',
+      '/api': {
+        target: 'https://hamedo-back-end-production.up.railway.app',
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
 });
