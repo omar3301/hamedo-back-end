@@ -6,7 +6,6 @@ export const createOrderSchema = Joi.object({
     lastName:  Joi.string().min(2).max(50).required(),
     phone:     Joi.string().pattern(/^\+\d{10,15}$/).required()
       .messages({ 'string.pattern.base': 'Phone must be in format +20XXXXXXXXXX' }),
-    email:     Joi.string().email().allow('').optional(),
   }).required(),
 
   delivery: Joi.object({
