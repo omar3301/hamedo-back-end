@@ -10,7 +10,7 @@ const signAccessToken  = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '15m' });
 
 const signRefreshToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET + '_refresh', { expiresIn: '7d' });
+  jwt.sign({ id }, process.env.JWT_REFRESH_TOKEN || process.env.JWT_SECRET + '_refresh', { expiresIn: '7d' });
 
 const COOKIE_OPTS = {
   httpOnly: true,
@@ -57,7 +57,7 @@ router.post('/refresh', async (req, res) => {
     const token = req.cookies?.hs_refresh;
     if (!token) return res.status(401).json({ message: 'No refresh token' });
 
-    const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET + '_refresh';
+    const secret = process.env.JWT_REFRESH_TOKEN || process.env.JWT_SECRET + '_refresh';
     const { id } = jwt.verify(token, secret);
 
     const admin = await Admin.findById(id).select('-password');
