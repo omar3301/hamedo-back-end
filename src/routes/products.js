@@ -77,6 +77,18 @@ router.get('/admin/:id', protect, async (req, res) => {
   }
 });
 
+// ── ADMIN / PUBLIC: Get single product by ID ─────────────────────────
+// Kept for backward compatibility with admin panel (calls /api/products/:id)
+router.get('/:id', protect, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+    res.json(product);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // ── ADMIN: Create product ─────────────────────────────────────────────
 router.post('/', protect, async (req, res) => {
   try {

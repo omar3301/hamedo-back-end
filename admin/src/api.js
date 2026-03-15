@@ -34,9 +34,11 @@ export const api = {
 
   // Products
   getProducts: (params={}) =>
-    fetch(`${BASE}/products/admin/all?${new URLSearchParams(params)}`, { headers:headers() }).then(handle),
+    fetch(`${BASE}/products/admin/all?${new URLSearchParams(params)}`, { headers:headers() })
+      .then(handle)
+      .then(d => d.products || d),   // unwrap paginated response → plain array
   getProduct: (id) =>
-    fetch(`${BASE}/products/${id}`, { headers:headers() }).then(handle),
+    fetch(`${BASE}/products/admin/${id}`, { headers:headers() }).then(handle),
   createProduct: (data) =>
     fetch(`${BASE}/products`, { method:'POST', headers:headers(), body:JSON.stringify(data) }).then(handle),
   updateProduct: (id, data) =>
