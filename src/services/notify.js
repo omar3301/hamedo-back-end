@@ -1,14 +1,17 @@
 /**
- * Notification service
- * 1. CUSTOMER — UltraMsg (product image + short clean confirmation)
- * 2. ADMIN    — CallMeBot (quick alert)
+ * Notification service — Evolution API (self-hosted)
  *
- * Env vars (Railway):
- *   ULTRAMSG_INSTANCE = instance165688
- *   ULTRAMSG_TOKEN    = ttgymwtcpbitqvns
- *   CALLMEBOT_API_KEY = 2523881
- *   ADMIN_PHONE       = +201067143628
+ * Env vars (Railway backend):
+ *   EVOLUTION_URL      = https://evolution-api-production-f929.up.railway.app
+ *   EVOLUTION_INSTANCE = MyPhone
+ *   EVOLUTION_APIKEY   = lolo100@A
+ *   CALLMEBOT_API_KEY  = 2523881
+ *   ADMIN_PHONE        = +201067143628
  */
+
+const EVO_URL      = process.env.EVOLUTION_URL      || 'https://evolution-api-production-f929.up.railway.app';
+const EVO_INSTANCE = process.env.EVOLUTION_INSTANCE || 'MyPhone';
+const EVO_APIKEY   = process.env.EVOLUTION_APIKEY   || 'lolo100@A';
 
 // ── Customer message ───────────────────────────────────────────────────
 function buildCustomerMessage(order) {
@@ -60,46 +63,50 @@ Total: ${order.total} EGP
 ${isPickup ? '🏪 PICKUP — no delivery needed' : `📍 ${order.delivery.city}, ${order.delivery.governorate}`}`;
 }
 
-// ── UltraMsg — sends image then text to customer ───────────────────────
-async function sendCustomerWhatsApp(order) {
-  const instanceId = process.env.ULTRAMSG_INSTANCE || 'instance165688';
-  const token      = process.env.ULTRAMSG_TOKEN     || 'ttgymwtcpbitqvns';
-  const base       = `https://api.ultramsg.com/${instanceId}`;
-  const phone      = '+' + order.customer.phone.replace(/^\+/, '');
+// ── Evolution API helper ───────────────────────────────────────────────
+async function evoPost(endpoint, payload) {
+  const res = await fetch(`${EVO_URL}/${endpoint}/${EVO_INSTANCE}`, {
+    method:  'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey':        EVO_APIKEY,
+    },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(`Evolution API error: ${JSON.stringify(json)}`);
+  return json;
+}
 
-  // 1. Product image
+// ── Send customer WhatsApp (image + text) ─────────────────────────────
+async function sendCustomerWhatsApp(order) {
+  // Normalize phone — Evolution API wants number only, no +
+  const number = order.customer.phone.replace(/^\+/, '');
+
+  // 1. Product image (if available)
   const productImage = order.items?.[0]?.image;
   if (productImage) {
-    const imgParams = new URLSearchParams();
-    imgParams.append('token',   token);
-    imgParams.append('to',      phone);
-    imgParams.append('image',   productImage);
-    imgParams.append('caption', `${order.items[0].name} — Order #${order.orderNumber}`);
-
-    const imgRes  = await fetch(`${base}/messages/image`, { method: 'POST', body: imgParams });
-    const imgJson = await imgRes.json();
-    if (imgJson.sent !== 'true') {
-      console.warn('Warning: Product image not sent:', imgJson.message || 'unknown');
-    }
+    await evoPost('message/sendMedia', {
+      number,
+      mediatype: 'image',
+      media:     productImage,
+      caption:   `${order.items[0].name} — Order #${order.orderNumber}`,
+      delay:     500,
+    }).catch(err => console.warn('Image send failed:', err.message));
   }
 
   // 2. Text confirmation
-  const params = new URLSearchParams();
-  params.append('token', token);
-  params.append('to',    phone);
-  params.append('body',  buildCustomerMessage(order));
+  await evoPost('message/sendText', {
+    number,
+    text:     buildCustomerMessage(order),
+    delay:    1000,
+    presence: 'composing',
+  });
 
-  const res  = await fetch(`${base}/messages/chat`, { method: 'POST', body: params });
-  const json = await res.json();
-
-  if (json.sent === 'true') {
-    console.log(`Customer WhatsApp sent to ${phone}`);
-  } else {
-    throw new Error(`UltraMsg error: ${json.message || JSON.stringify(json)}`);
-  }
+  console.log(`✅ Customer WhatsApp sent to ${number}`);
 }
 
-// ── CallMeBot — admin alert ────────────────────────────────────────────
+// ── Send admin alert (CallMeBot) ───────────────────────────────────────
 async function sendAdminAlert(order) {
   const text  = encodeURIComponent(buildAdminMessage(order));
   const phone = encodeURIComponent(process.env.ADMIN_PHONE || '+201067143628');
@@ -108,7 +115,7 @@ async function sendAdminAlert(order) {
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`CallMeBot error: ${res.status}`);
-  console.log('Admin alert sent');
+  console.log('✅ Admin alert sent');
 }
 
 // ── Main export ────────────────────────────────────────────────────────
@@ -121,7 +128,7 @@ export async function notifyNewOrder(order) {
   results.forEach((r, i) => {
     if (r.status === 'rejected') {
       const who = i === 0 ? 'Customer WhatsApp' : 'Admin alert';
-      console.error(`${who} failed (order was saved):`, r.reason?.message || r.reason);
+      console.error(`⚠️  ${who} failed (order was saved):`, r.reason?.message || r.reason);
     }
   });
 }
