@@ -3,7 +3,11 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
+import swaggerJsdoc from 'swagger-jsdoc';
 import { connectDB } from './config/db.js';
+import { logger } from './config/logger.js';
 import orderRoutes    from './routes/orders.js';
 import productRoutes  from './routes/products.js';
 import authRoutes     from './routes/auth.js';
@@ -14,55 +18,79 @@ import Admin from './models/Admin.js';
 
 const app = express();
 
-// ── Security headers ────────────────────────────────────────────────────
+// ── Security headers ─────────────────────────────────────────────────
 app.use(helmet());
 
-// ── CORS ────────────────────────────────────────────────────────────────
+// ── CORS ─────────────────────────────────────────────────────────────
 app.use(cors({
   origin: [
     process.env.CLIENT_URL || 'http://localhost:5173',
     process.env.ADMIN_URL  || 'http://localhost:5174',
   ],
-  credentials: true,
+  credentials: true, // required for cookies
 }));
 
-// ── Body parsers ────────────────────────────────────────────────────────
+// ── Body + Cookie parsers ────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// ── Global rate limit (all routes) ─────────────────────────────────────
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 minutes
+// ── Request logger ───────────────────────────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
+    logger[level](`${req.method} ${req.path} ${res.statusCode} — ${ms}ms`);
+  });
+  next();
+});
+
+// ── Global rate limit ────────────────────────────────────────────────
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many requests, please try again later.' },
-});
-app.use(globalLimiter);
+}));
 
-// ── Strict rate limit on auth login ────────────────────────────────────
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 minutes
-  max: 10,                    // 10 attempts max
-  standardHeaders: true,
-  legacyHeaders: false,
+// ── Strict login rate limit ──────────────────────────────────────────
+app.use('/api/auth/login', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   message: { message: 'Too many login attempts. Please wait 15 minutes.' },
-});
-app.use('/api/auth/login', loginLimiter);
+}));
 
-// ── Routes ───────────────────────────────────────────────────────────────
+// ── Swagger docs ─────────────────────────────────────────────────────
+const swaggerSpec = swaggerJsdoc({
+  definition: {
+    openapi: '3.0.0',
+    info: { title: 'HamedoSport API', version: '1.0.0', description: 'Padel & Football store API' },
+    servers: [{ url: '/api' }],
+    components: {
+      securitySchemes: {
+        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      },
+    },
+    security: [{ bearerAuth: [] }],
+  },
+  apis: ['./src/routes/*.js'],
+});
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// ── Routes ───────────────────────────────────────────────────────────
 app.use('/api/auth',     authRoutes);
 app.use('/api/orders',   orderRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/visits',   visitRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/upload',   uploadRoutes);
+app.get('/api/health',  (req, res) => res.json({ status: 'ok', ts: new Date() }));
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok', ts: new Date() }));
-
-// ── Global error handler ────────────────────────────────────────────────
+// ── Global error handler ──────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  logger.error('Unhandled error', { error: err.message, stack: err.stack });
   res.status(500).json({ message: 'Internal server error' });
 });
 
@@ -71,9 +99,8 @@ const PORT = process.env.PORT || 4000;
 const start = async () => {
   await connectDB();
 
-  // Seed default admin — REQUIRES env vars, no fallback values in code
   if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
-    console.error('❌ ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env');
+    logger.error('ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env');
     process.exit(1);
   }
 
@@ -85,13 +112,14 @@ const start = async () => {
       name: 'Hamed',
       role: 'superadmin',
     });
-    console.log('✅ Default admin created');
+    logger.info('Default admin created');
   }
 
   await seedSettings();
-  console.log('✅ Settings ready');
+  logger.info('Settings ready');
 
-  app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
+  app.listen(PORT, () => logger.info(`Server running at http://localhost:${PORT}`));
+  logger.info(`Swagger docs at http://localhost:${PORT}/api/docs`);
 };
 
 start();

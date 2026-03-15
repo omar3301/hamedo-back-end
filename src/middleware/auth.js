@@ -12,7 +12,11 @@ export const protect = async (req, res, next) => {
     req.admin = await Admin.findById(decoded.id).select('-password');
     if (!req.admin) return res.status(401).json({ message: 'Admin not found' });
     next();
-  } catch {
-    res.status(401).json({ message: 'Token invalid or expired' });
+  } catch (err) {
+    // Distinguish expired vs invalid so the client can decide to refresh
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expired', expired: true });
+    }
+    res.status(401).json({ message: 'Token invalid' });
   }
 };
