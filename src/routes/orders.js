@@ -4,7 +4,7 @@ import Product from '../models/Product.js';
 import { protect } from '../middleware/auth.js';
 import { getSetting } from './settings.js';
 import { createOrderSchema } from '../validators/order.js';
-import { notifyNewOrder } from '../services/notify.js';
+import { enqueueNotification } from '../services/notifyQueue.js';
 
 const router = Router();
 
@@ -63,8 +63,8 @@ router.post('/', async (req, res) => {
       console.error('⚠️  Stock deduction failed for order', order.orderNumber, stockErr.message);
     }
 
-    // 5. Notify admin (WhatsApp/SMS) — never crashes the response
-    await notifyNewOrder(order);
+    // 5. Enqueue WhatsApp notification — returns instantly, sends in background
+    enqueueNotification(order); // intentionally NOT awaited
 
     res.status(201).json({
       success:     true,
