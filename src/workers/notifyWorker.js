@@ -19,7 +19,7 @@
  */
 
 import NotificationJob from '../models/NotificationJob.js';
-import { notifyNewOrder } from './notify.js';
+import { notifyNewOrder } from '../services/notify.js';
 
 const BATCH_SIZE = 10;       // process 10 jobs at once
 const POLL_MS   = 5_000;    // check queue every 5 seconds
