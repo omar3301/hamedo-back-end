@@ -47,6 +47,8 @@ export const api = {
     fetch(`${BASE}/products/${id}`, { method:'DELETE', headers:headers() }).then(handle),
   toggleProduct: (id) =>
     fetch(`${BASE}/products/${id}/toggle`, { method:'PATCH', headers:headers() }).then(handle),
+  reorderProducts: (items) =>
+    fetch(`${BASE}/products/reorder`, { method:'PATCH', headers:headers(), body:JSON.stringify(items) }).then(handle),
 
   // Visits
   getVisitStats: () =>

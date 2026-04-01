@@ -300,6 +300,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .product-card:hover { border-color: var(--border2); transform: translateY(-2px); }
 .product-card.inactive { opacity: 0.5; }
+.product-card.draggable { cursor: grab !important; transition: transform .15s, box-shadow .15s, border-color .15s; }
+.product-card.draggable:active { cursor: grabbing !important; transform: scale(1.03) rotate(1deg); box-shadow: 0 16px 40px rgba(0,0,0,.6); border-color: rgba(244,196,48,.5); }
+.products-grid.reorder-mode .product-card { border-color: rgba(244,196,48,.15); }
+.products-grid.reorder-mode .product-card:hover { border-color: rgba(244,196,48,.4); transform: translateY(-2px); }
 
 .pc-img-wrap { position: relative; aspect-ratio: 1; background: var(--bg3); overflow: hidden; }
 .pc-img      { width: 100%; height: 100%; object-fit: cover; object-position: top center; }

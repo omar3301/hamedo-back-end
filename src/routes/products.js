@@ -90,11 +90,35 @@ router.get('/admin/all', protect, async (req, res) => {
     }
     const total    = await Product.countDocuments(query);
     const products = await Product.find(query)
-      .sort('-createdAt')
+      .sort('sortOrder -createdAt')
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
     res.json({ products, total, pages: Math.ceil(total / Number(limit)), page: Number(page) });
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ── ADMIN: Reorder products ───────────────────────────────────────────
+// Body: [{ id, sortOrder }, ...]
+router.patch('/reorder', protect, async (req, res) => {
+  try {
+    const items = req.body; // [{ id, sortOrder }]
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'Expected array of { id, sortOrder }' });
+    }
+    const bulkOps = items.map(({ id, sortOrder }) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { $set: { sortOrder: Number(sortOrder) } },
+      },
+    }));
+    await Product.bulkWrite(bulkOps);
+    invalidateProducts();
+    logger.info('Products reordered', { count: items.length });
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('Reorder error', { error: err.message });
     res.status(500).json({ message: err.message });
   }
 });
