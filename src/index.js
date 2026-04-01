@@ -18,7 +18,11 @@ import Admin from './models/Admin.js';
 import { startNotificationWorker } from './workers/notifyWorker.js';
 
 const app = express();
-
+mongoose.connect(process.env.MONGODB_URI, {
+  family: 4 // This forces Node to use IPv4
+})
+.then(() => console.log('Connected to MongoDB!'))
+.catch(err => console.error(err));
 // ── Security headers ─────────────────────────────────────────────────
 app.use(helmet());
 
