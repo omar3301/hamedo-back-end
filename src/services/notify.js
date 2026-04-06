@@ -10,7 +10,7 @@
  */
 
 const EVO_URL      = process.env.EVOLUTION_URL      || 'https://evolution-api-production-f929.up.railway.app';
-const EVO_INSTANCE = process.env.EVOLUTION_INSTANCE || 'MyPhone';
+const EVO_INSTANCE = process.env.EVOLUTION_INSTANCE || 'hamedo';
 const EVO_APIKEY   = process.env.EVOLUTION_APIKEY   || 'lolo100@A';
 
 // ── Customer message ───────────────────────────────────────────────────

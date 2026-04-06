@@ -21,9 +21,11 @@ export default function Products({ onNew, onEdit }) {
   const [reorderMode, setReorderMode] = useState(false);
   const [saving,      setSaving]      = useState(false);
   const [saveMsg,     setSaveMsg]     = useState('');
+  const [draggingIdx, setDraggingIdx] = useState(null); // for visual highlight
 
-  // Drag state refs (no re-render needed)
-  const dragIdx = useRef(null);
+  // ── Pointer-based drag refs ────────────────────────────────────────
+  const dragIdx   = useRef(null);   // index currently being dragged
+  const gridRef   = useRef(null);   // reference to the grid container
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -31,7 +33,6 @@ export default function Products({ onNew, onEdit }) {
       const params = {};
       if (q) params.search = q;
       const data = await api.getProducts(params);
-      // Sort by sortOrder so list reflects backend order
       const sorted   = [...data].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
       const filtered = cat === 'all' ? sorted : sorted.filter(p => p.category === cat);
       setProducts(filtered);
@@ -41,36 +42,60 @@ export default function Products({ onNew, onEdit }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Drag & drop handlers ───────────────────────────────────────────
-  const onDragStart = (i) => { dragIdx.current = i; };
+  // ── Pointer Events drag implementation ────────────────────────────
+  // This works for BOTH mouse and touch/finger with no browser interference.
+  // Key: we never use the HTML5 drag API or touch events.
 
-  const onDragEnter = (i) => {
-    if (dragIdx.current === null || dragIdx.current === i) return;
+  const swapItems = useCallback((fromIdx, toIdx) => {
+    if (fromIdx === toIdx) return;
     setProducts(prev => {
       const next = [...prev];
-      const [moved] = next.splice(dragIdx.current, 1);
-      next.splice(i, 0, moved);
-      dragIdx.current = i;
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
       return next;
     });
-  };
+    dragIdx.current = toIdx;
+  }, []);
 
-  const onDragEnd = () => { dragIdx.current = null; };
+  const handlePointerDown = useCallback((e, i) => {
+    if (!reorderMode) return;
+    // Only main button (mouse left) or touch/pen
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
 
-  // Touch support for mobile
-  const onTouchStart = (e, i) => {
-    dragIdx.current = i;
-  };
-  const onTouchMove = (e) => {
     e.preventDefault();
-    const touch = e.touches[0];
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const card = el?.closest('[data-drag-idx]');
+    e.currentTarget.setPointerCapture(e.pointerId); // keep tracking even outside element
+
+    dragIdx.current = i;
+    setDraggingIdx(i);
+  }, [reorderMode]);
+
+  const handlePointerMove = useCallback((e) => {
+    if (!reorderMode || dragIdx.current === null) return;
+    e.preventDefault();
+
+    // Release capture temporarily to hit-test, then re-capture
+    const captureEl = e.currentTarget;
+    captureEl.releasePointerCapture(e.pointerId);
+
+    const below = document.elementFromPoint(e.clientX, e.clientY);
+
+    captureEl.setPointerCapture(e.pointerId);
+
+    const card = below?.closest('[data-drag-idx]');
     if (!card) return;
+
     const targetIdx = Number(card.dataset.dragIdx);
-    if (targetIdx !== dragIdx.current) onDragEnter(targetIdx);
-  };
-  const onTouchEnd = () => { dragIdx.current = null; };
+    if (!isNaN(targetIdx) && targetIdx !== dragIdx.current) {
+      swapItems(dragIdx.current, targetIdx);
+      setDraggingIdx(targetIdx);
+    }
+  }, [reorderMode, swapItems]);
+
+  const handlePointerUp = useCallback((e) => {
+    if (!reorderMode) return;
+    dragIdx.current = null;
+    setDraggingIdx(null);
+  }, [reorderMode]);
 
   // ── Save reorder ───────────────────────────────────────────────────
   const saveOrder = async () => {
@@ -121,7 +146,7 @@ export default function Products({ onNew, onEdit }) {
           )}
           {reorderMode ? (
             <>
-              <button className="btn-ghost" onClick={() => { setReorderMode(false); load(); }} disabled={saving}>
+              <button className="btn-ghost" onClick={() => { setReorderMode(false); setDraggingIdx(null); load(); }} disabled={saving}>
                 Cancel
               </button>
               <button className="btn-primary" onClick={saveOrder} disabled={saving}>
@@ -154,7 +179,7 @@ export default function Products({ onNew, onEdit }) {
           <span style={{ fontSize: '1.1rem' }}>↕</span>
           <span>
             <strong style={{ color: '#F4C430' }}>Reorder mode</strong> —
-            drag &amp; drop cards to set the display order on the store.
+            hold &amp; drag any card to change its position.
             Hit <strong style={{ color: '#F4C430' }}>Save Order</strong> when done.
           </span>
         </div>
@@ -184,26 +209,33 @@ export default function Products({ onNew, onEdit }) {
       )}
 
       {loading ? <div className="page-loading"><div className="spinner"/></div> : (
-        <div className={`products-grid${reorderMode ? ' reorder-mode' : ''}`}>
+        <div ref={gridRef} className={`products-grid${reorderMode ? ' reorder-mode' : ''}`}>
           {products.map((p, i) => {
             const img      = p.variants?.[0]?.images?.[0] || '';
             const allSizes = [...new Set(p.variants?.flatMap(v => v.sizes?.map(s => s.label || s)) || [])];
             const catColor = CAT_COLORS[p.category] || '#888';
+            const isBeingDragged = draggingIdx === i;
 
             return (
               <div
                 key={p._id}
                 data-drag-idx={i}
-                className={`product-card${!p.active ? ' inactive' : ''}${reorderMode ? ' draggable' : ''}`}
-                draggable={reorderMode}
-                onDragStart={reorderMode ? () => onDragStart(i) : undefined}
-                onDragEnter={reorderMode ? () => onDragEnter(i) : undefined}
-                onDragEnd={reorderMode ? onDragEnd : undefined}
-                onDragOver={reorderMode ? (e) => e.preventDefault() : undefined}
-                onTouchStart={reorderMode ? (e) => onTouchStart(e, i) : undefined}
-                onTouchMove={reorderMode ? onTouchMove : undefined}
-                onTouchEnd={reorderMode ? onTouchEnd : undefined}
-                style={reorderMode ? { cursor: 'grab', userSelect: 'none', position: 'relative' } : { position: 'relative' }}
+                className={`product-card${!p.active ? ' inactive' : ''}${reorderMode ? ' draggable' : ''}${isBeingDragged ? ' is-dragging' : ''}`}
+                style={{
+                  position: 'relative',
+                  // CRITICAL: touch-action none stops the browser scroll/zoom
+                  // gesture from firing and stealing the pointer away
+                  ...(reorderMode ? {
+                    cursor: isBeingDragged ? 'grabbing' : 'grab',
+                    userSelect: 'none',
+                    touchAction: 'none',     // ← prevents scroll steal on mobile
+                    WebkitUserSelect: 'none',
+                  } : {}),
+                }}
+                onPointerDown={reorderMode ? (e) => handlePointerDown(e, i) : undefined}
+                onPointerMove={reorderMode ? handlePointerMove : undefined}
+                onPointerUp={reorderMode ? handlePointerUp : undefined}
+                onPointerCancel={reorderMode ? handlePointerUp : undefined}
               >
                 {/* Position badge — only in reorder mode */}
                 {reorderMode && (
@@ -219,9 +251,9 @@ export default function Products({ onNew, onEdit }) {
                   </div>
                 )}
 
-                <div className="pc-img-wrap">
+                <div className="pc-img-wrap" style={{ pointerEvents: 'none' }}>
                   {img
-                    ? <img src={img} alt={p.name} className="pc-img" onError={e => e.target.style.opacity='0.1'}/>
+                    ? <img src={img} alt={p.name} className="pc-img" draggable={false} onError={e => e.target.style.opacity='0.1'}/>
                     : <div className="pc-img-placeholder">No image</div>
                   }
                   {p.badge && <div className="pc-badge">{p.badge}</div>}
@@ -231,7 +263,7 @@ export default function Products({ onNew, onEdit }) {
                   </div>
                 </div>
 
-                <div className="pc-info">
+                <div className="pc-info" style={reorderMode ? { pointerEvents: 'none' } : {}}>
                   <div className="pc-brand">{p.brand}</div>
                   <div className="pc-name">{p.name}</div>
                   {p.subtitle && <div className="pc-subtitle">{p.subtitle}</div>}
@@ -239,8 +271,8 @@ export default function Products({ onNew, onEdit }) {
                   <div className="pc-variants">
                     {p.variants?.length > 0 && (
                       <div className="pc-colors">
-                        {p.variants.slice(0,5).map((v,i) => (
-                          <div key={i} className="color-dot" style={{ background: v.colorHex||'#888' }} title={v.color}/>
+                        {p.variants.slice(0,5).map((v,j) => (
+                          <div key={j} className="color-dot" style={{ background: v.colorHex||'#888' }} title={v.color}/>
                         ))}
                         {p.variants.length > 5 && <span className="more-colors">+{p.variants.length-5}</span>}
                       </div>
