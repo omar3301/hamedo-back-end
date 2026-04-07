@@ -165,7 +165,7 @@ useEffect(() => {
 
 ### 🏷️ Products
 - Product grid with images, colors, sizes preview
-- Filter by sport (Padel / Football)
+- Filter by sport (Padel )
 - Search by name or brand
 - Show/hide products (toggle active)
 - Edit product
