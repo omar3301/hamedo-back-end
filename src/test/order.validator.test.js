@@ -70,7 +70,7 @@ describe("Order validator", () => {
     const pickup = {
       ...validOrder,
       deliveryMethod: "pickup",
-      delivery: { address: "Store", city: "Shebin El Kom", governorate: "Monufia" },
+      delivery: { address: "Store", city: "Shebin El Kom", governorate: "Menoufiya" },
     };
     const { error } = createOrderSchema.validate(pickup);
     expect(error).toBeUndefined();

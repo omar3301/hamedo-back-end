@@ -62,7 +62,7 @@ export default function StoreSales() {
           address:     'In-Store Sale',
           apt:         '',
           city:        'Shebin El Kom',
-          governorate: 'Monufia',
+          governorate: 'Menoufiya',
         },
         items: [{
           productId: selectedProduct._id || selectedProduct.slug,
