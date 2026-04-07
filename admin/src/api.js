@@ -1,4 +1,6 @@
-const BASE = '/api';
+const BASE = import.meta.env.PROD 
+  ? 'https://hamedo-back-end-production-63a0.up.railway.app/api' 
+  : '/api';
 const getToken = () => localStorage.getItem('hs_admin_token');
 const headers = (extra = {}) => ({
   'Content-Type': 'application/json',
