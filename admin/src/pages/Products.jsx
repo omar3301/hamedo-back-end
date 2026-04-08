@@ -4,12 +4,12 @@ import { api } from '../api.js';
 const CAT_COLORS = {
   all:         '#A78BFA',
   Rackets:     '#F4C430',
-  Shoes:       '#34D399',
+  Socks:       '#34D399',
   Accessories: '#60A5FA',
   Clothes:     '#F472B6',
 };
 
-const CATS = ['all', 'Rackets', 'Shoes', 'Accessories', 'Clothes'];
+const CATS = ['all', 'Rackets', 'Socks', 'Accessories', 'Clothes'];
 
 export default function Products({ onNew, onEdit }) {
   const [products,    setProducts]    = useState([]);

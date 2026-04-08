@@ -173,7 +173,7 @@ useEffect(() => {
 
 ### ✏️ Product Form
 - **Multiple color variants** — each with its own images, sizes, and stock
-- Size presets: Adults (XS–XXL), Kids (4Y–16Y), Shoes (38–45)
+- Size presets: Adults (XS–XXL), Kids (4Y–16Y), Socks (38–45)
 - Custom sizes with stock numbers
 - Image URL preview (paste URL, see image instantly)
 - Color picker + hex input

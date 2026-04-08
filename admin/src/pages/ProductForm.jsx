@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 
 const SPORTS    = ['padel'];
-const CATEGORIES = ['Rackets', 'Shoes', 'Accessories', 'Clothes'];
+const CATEGORIES = ['Rackets', 'Socks', 'Accessories', 'Clothes'];
 const BADGES    = ['', 'NEW', 'HOT', 'SALE', 'LIMITED', 'BESTSELLER'];
 const SIZE_PRESETS = {
   adults:  ['XS','S','M','L','XL','XXL'],
   kids:    ['4Y','6Y','8Y','10Y','12Y','14Y','16Y'],
-  shoes:   ['38','39','40','41','42','43','44','45'],
+  socks:   ['XS','S','M','L','XL','XXL'],
   custom:  [],
 };
 

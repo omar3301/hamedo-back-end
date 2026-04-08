@@ -437,7 +437,7 @@ export default function Dashboard() {
                   <div className="status-list">
                     {(visitStats.visitsByPage || []).map(p => {
                       const total = visitStats.totalVisits || 1;
-                      const icons = { home:'🏠', rackets:'🏓', shoes:'👟', accessories:'🎒', clothes:'👕', all:'⚡' };
+                      const icons = { home:'🏠', rackets:'🏓', socks:'🧦', accessories:'🎒', clothes:'👕', all:'⚡' };
                       return (
                         <div key={p._id} className="status-row">
                           <span style={{ fontSize:16 }}>{icons[p._id] || '📄'}</span>

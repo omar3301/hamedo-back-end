@@ -67,9 +67,9 @@ function Login({ onLogin }) {
   );
 }
 
-function Sidebar({ page, setPage, admin, onLogout }) {
+function Sidebar({ page, setPage, admin, onLogout, isOpen }) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-logo">
         <span className="logo-mark">HS</span>
         <div>
@@ -112,6 +112,9 @@ export default function App() {
   const [page,     setPage]     = useState('dashboard');
   const [editId,   setEditId]   = useState(null);
   const [checking, setChecking] = useState(true);
+  
+  // ADD THIS LINE for the mobile menu state
+  const [menuOpen, setMenuOpen] = useState(false); 
 
   useEffect(() => {
     const token = localStorage.getItem('hs_admin_token');
@@ -135,11 +138,26 @@ export default function App() {
   return (
     <AuthCtx.Provider value={{ admin, logout }}>
       <div className="layout">
+        
+        {/* ADD THIS WHOLE BLOCK: The Mobile Header */}
+        <div className="mobile-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span className="logo-mark">HS</span>
+            <span className="logo-text">ADMIN</span>
+          </div>
+          <button className="btn-ghost small" onClick={() => setMenuOpen(true)}>☰ Menu</button>
+        </div>
+
+        {/* ADD THIS LINE: The dark overlay behind the menu */}
+        {menuOpen && <div className="sidebar-overlay" onClick={() => setMenuOpen(false)}></div>}
+
         <Sidebar
           page={page}
-          setPage={p => { setPage(p); setEditId(null); }}
+          // Update setPage to also close the menu when a link is clicked
+          setPage={p => { setPage(p); setEditId(null); setMenuOpen(false); }}
           admin={admin}
           onLogout={logout}
+          isOpen={menuOpen} // Pass the state here
         />
         <main className="main-content">
           {page === 'dashboard'    && <Dashboard />}

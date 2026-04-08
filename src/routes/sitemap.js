@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
       url(`${SITE}/shop/football`,   'daily',  '0.8'),
       url(`${SITE}/shop/rackets`,    'weekly', '0.7'),
       url(`${SITE}/shop/clothes`,    'weekly', '0.7'),
-      url(`${SITE}/shop/shoes`,      'weekly', '0.7'),
+      url(`${SITE}/shop/socks`,      'weekly', '0.7'),
       url(`${SITE}/shop/accessories`,'weekly', '0.7'),
     ];
 
