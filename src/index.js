@@ -25,11 +25,15 @@ app.use(helmet());
 // ── CORS ─────────────────────────────────────────────────────────────
 app.use(cors({
   origin: [
-    process.env.CLIENT_URL || 'http://localhost:5173',
-    process.env.ADMIN_URL  || 'http://localhost:5174',
-    'https://hamedo-dashboard-production.up.railway.app' // Added here
-  ],
-  credentials: true, 
+    'https://hamedosport.com',
+    'https://www.hamedosport.com',
+    process.env.CLIENT_URL,
+    process.env.ADMIN_URL,
+    'https://hamedo-dashboard-production.up.railway.app',
+    'http://localhost:5173',
+    'http://localhost:5174',
+  ].filter(Boolean),
+  credentials: true,
 }));
 
 // ── Body + Cookie parsers ────────────────────────────────────────────
